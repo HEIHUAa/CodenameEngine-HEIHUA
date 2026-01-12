@@ -29,8 +29,6 @@
 	<!--Minimum without FLX_NO_GAMEPAD: 11.8, without FLX_NO_NATIVE_CURSOR: 11.2-->
 	<set name="SWF_VERSION" value="11.8" />
 
-	<set name="HXCPP_GC_GENERATIONAL" />
-
 	<!-- ____________________________ Window Settings ___________________________ -->
 
 	<!--These window settings apply to all targets-->
@@ -236,6 +234,7 @@
 	<haxedef name="HXCPP_CHECK_POINTER" />
 	<haxedef name="HXCPP_STACK_LINE" />
 	<haxedef name="HXCPP_CATCH_SEGV" />
+	<haxedef name="HXCPP_GC_GENERATIONAL" />
 
 	<haxedef name="hscriptPos" /> <!-- for logging -->
 

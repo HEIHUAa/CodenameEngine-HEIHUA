@@ -31,7 +31,7 @@
 		<lib global="true" name="hxp" /> <lib name="hxp" />
 		<lib global="true" name="format" /> <lib name="format" />
 
-		<git name="hxcpp" url="https://github.com/CodenameCrew/cne-hxcpp" />
+		<git name="hxcpp" url="https://github.com/HEIHUAa/cne-hxcpp" />
 	</if>
 
 	<!-- Hxcpp Building -->
