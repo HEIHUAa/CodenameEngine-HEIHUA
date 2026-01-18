@@ -1,7 +1,7 @@
 name: iOS Build
 on:
-  push:
-    branches: ['Android']
+  # push:
+  #   branches: ['main']
   workflow_dispatch:
   workflow_call:
 jobs:

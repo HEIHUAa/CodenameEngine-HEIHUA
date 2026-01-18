@@ -21,12 +21,16 @@ jobs:
         with:
           # not caching the bin folder to prevent asset duplication and stuff like that
           key: cache-build-android
+          key: cache-build-android-${{ runner.os }}
           path: |
             .haxelib/
             export/release/android/haxe/
             export/release/android/obj/
+            ~/.hxcpp
+          restore-keys: |
+            cache-build-android-${{ runner.os }}-
       - run: |
-          echo "HXCPP_COMPILE_CACHE=~/.hxcpp" >> $GITHUB_ENV
+          echo "HXCPP_COMPILE_CACHE=$HOME/.hxcpp" >> $GITHUB_ENV
       - name: Installing/Updating libraries
         run: |
           haxe -cp commandline -D analyzer-optimize --run Main setup -s
