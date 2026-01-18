@@ -1,7 +1,13 @@
 # Friday Night Funkin' - Codename Engine Mobile
 
+>
+>
+> The project is based on https://github.com/HomuHomu833-haxe-stuff/CodenameEngine-Mobile, with only minor updates to adapt it for the mobile version of my mod.
+>
+>
+>
 > [!CAUTION]
-> If you encounter any issues in the MOBILE PORT, PLEASE REPORT THEM TO US FIRST!  
+> If you encounter any issues in the MOBILE PORT, PLEASE REPORT THEM TO US FIRST!
 > This helps us ensure the best experience for all users and allows us to fix problems quickly, without disturbing the upstream repository.
 
 ![Animated-Banner](https://github.com/user-attachments/assets/5830221d-d954-4be3-afe8-caae364a5881)
@@ -10,6 +16,7 @@ Codename Engine is a cross platform [Friday Night Funkin'](https://github.com/Fu
 It is the the official successor of the previously well known [Yoshi Engine](https://github.com/CodenameCrew/YoshiCrafterEngine).
 
 The engine uses [HaxeFlixel](https://haxeflixel.com/) and it mainly features:
+
 - A full scripting system with an optimized fork of [Hscript](https://lib.haxe.org/p/hscript/) (its name is [Hscript Improved](https://github.com/CodenameCrew/hscript-improved))
 - Uses forks of popular libraries tailored specifically for the engine for the goal of better optimization.
 - Modding system and softcoding is as capable as source coding.
@@ -53,40 +60,45 @@ The engine uses [HaxeFlixel](https://haxeflixel.com/) and it mainly features:
 <details>
   <summary><h2>How to download</h2></summary>
 
-  - Stable builds of the engine can be found on our [GitHub](https://github.com/HomuHomu833/CodenameEngine-Mobile/releases) page.
-  - Latest *EXPERIMENTAL* builds of the engine can be found in the [Actions](https://github.com/HomuHomu833/CodenameEngine-Mobile/actions) tab. **REQUIRES A GITHUB ACCOUNT!!**
- 
+- Stable builds of the engine can be found on our [GitHub](https://github.com/HomuHomu833/CodenameEngine-Mobile/releases) page.
+- Latest *EXPERIMENTAL* builds of the engine can be found in the [Actions](https://github.com/HomuHomu833/CodenameEngine-Mobile/actions) tab. **REQUIRES A GITHUB ACCOUNT!!**
+
 </details>
 
 <details>
   <summary><h2>How to mod</h2></summary>
 
-  Check out Codename Engine's wiki [HERE](https://codename-engine.com/wiki/)
+Check out Codename Engine's wiki [HERE](https://codename-engine.com/wiki/)
+
 </details>
 
 <details>
   <summary><h2>Usage Info (CNE)</h2></summary>
 
-  ### Feel free to:
-  - Download and play the engine with its mods and modpacks
-  - Mod and fork the engine (without using it for illicit purposes)
-  - Contribute to the engine (for example through *Pull Requests*, *Issues*, etc.)
-  - Create a sub engine with Codename Engine as **TEMPLATE** with **CREDITS** (for example leaving the *credits menu submenu with the GitHub contributors* and putting the *[main devs](https://github.com/CodenameCrew)* in a *README* specifying that it's a *sub engine from Codename Engine*)
-  - Release excutable mods that use Codename Engine as source (specifing that uses Codename Engine by for example the same way written above this)
-  - Release Codename Engine modpacks
+### Feel free to:
 
-  ### Please do not:
-  - Create a *side/new/etc* engine (or mod that doesn't use Codename Engine) using Codename Engine's code
-  - Steal code from Codename Engine for another different project that is not Codename Engine related (Codename Engine mods excluded) without properly crediting
-  - Release the entirety of Codename Engine on platforms (mods that use Codename Engine as source are fine)
+- Download and play the engine with its mods and modpacks
+- Mod and fork the engine (without using it for illicit purposes)
+- Contribute to the engine (for example through *Pull Requests*, *Issues*, etc.)
+- Create a sub engine with Codename Engine as **TEMPLATE** with **CREDITS** (for example leaving the *credits menu submenu with the GitHub contributors* and putting the *[main devs](https://github.com/CodenameCrew)* in a *README* specifying that it's a *sub engine from Codename Engine*)
+- Release excutable mods that use Codename Engine as source (specifing that uses Codename Engine by for example the same way written above this)
+- Release Codename Engine modpacks
 
-  #### *If you need more info or feel like asking to do something which is not listed here, ask us directly on our [discord server](https://discord.com/servers/codename-engine-860561967383445535)!*
+### Please do not:
+
+- Create a *side/new/etc* engine (or mod that doesn't use Codename Engine) using Codename Engine's code
+- Steal code from Codename Engine for another different project that is not Codename Engine related (Codename Engine mods excluded) without properly crediting
+- Release the entirety of Codename Engine on platforms (mods that use Codename Engine as source are fine)
+
+#### *If you need more info or feel like asking to do something which is not listed here, ask us directly on our [discord server](https://discord.com/servers/codename-engine-860561967383445535)!*
+
 </details>
 
 <details>
   <summary><h2>Usage Info (Mobile Port)</h2></summary>
 
-  honestly idgaf, do whatever you want with it.
+honestly idgaf, do whatever you want with it.
+
 </details>
 
 <details>
@@ -98,6 +110,7 @@ The engine uses [HaxeFlixel](https://haxeflixel.com/) and it mainly features:
 - Credits to MAJigsaw77 for [hxvlc](https://github.com/MAJigsaw77/hxvlc) (video cutscene/mp4 support) and [hxdiscord_rpc](https://github.com/MAJigsaw77/hxdiscord_rpc) (discord rpc integration)
 - Credits to [TheoDev](https://github.com/TheoDevelops) for [FunkinModchart](https://lib.haxe.org/p/funkin-modchart/). ***(library used for modcharting features)***
 - Credits to [Ninjamuffin99](https://github.com/ninjamuffin99) and the [Funkin Crew](https://github.com/FunkinCrew) for the base game Friday Night Funkin'
+
 </details>
 
 <details>
@@ -106,4 +119,5 @@ The engine uses [HaxeFlixel](https://haxeflixel.com/) and it mainly features:
 - Credits to [Homura](https://youtube.com/@HomuHomu833) for porting the engine
 - Credits to [Karim Akra](https://youtube.com/@karim-akra) for helping on the port
 - Credits to [SantiYea](https://youtube.com/@santiyea) for bringing back the source
+
 </details>
