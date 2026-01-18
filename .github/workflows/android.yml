@@ -19,8 +19,6 @@ jobs:
       - name: Restore existing build cache for faster compilation
         uses: actions/cache@v4.2.3
         with:
-          # not caching the bin folder to prevent asset duplication and stuff like that
-          key: cache-build-android
           key: cache-build-android-${{ runner.os }}
           path: |
             .haxelib/
