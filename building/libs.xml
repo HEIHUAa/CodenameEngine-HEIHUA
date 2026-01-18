@@ -5,7 +5,7 @@
 
 		<!-- OpenFL & Lime (Required for Flixel) -->
 		<git name="openfl" url="https://github.com/HomuHomu833-haxe-stuff/cne-openfl" />
-		<git name="lime" url="https://github.com/HomuHomu833-haxe-stuff/lime" />
+		<git name="lime" url="https://github.com/FNF-SE/lime" />
 
 		<!-- Flixel -->
 		<git name="flixel" url="https://github.com/HomuHomu833-haxe-stuff/cne-flixel" />
