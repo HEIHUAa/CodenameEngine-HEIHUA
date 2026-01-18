@@ -11,6 +11,11 @@
 		<str id="close">Close</str>
 		<str id="notNow">Not Now</str>
 		<str id="yes">Yes</str>
+
+		<group name="Warnings" prefix="warnings.">
+			<str id="mkRequirement-title">Warning: Mouse and Keyboard Required!</str>
+			<str id="mkRequirement-body">You're about to enter an editor. Using the editors requires a plugged-in mouse and keyboard.\n(You may need to set TouchPad Opacity to 0)\n\n\nProceed?</str>
+		</group>
 	</group>
 
 	<group name="UIImageExplorer" prefix="uiImageExplorer.">

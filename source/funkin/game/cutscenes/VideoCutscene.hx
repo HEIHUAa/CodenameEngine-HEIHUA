@@ -59,7 +59,6 @@ class VideoCutscene extends Cutscene {
 		parseSubtitles();
 
 		add(video = new FlxVideoSprite());
-		video.antialiasing = true;
 		#if (hxvlc < version("2.0.0"))
 		video.autoPause = false;  // Imma handle it better inside this class, mainly because of the pause menu  - Nex
 		#end
@@ -106,7 +105,7 @@ class VideoCutscene extends Cutscene {
 			if (localPath.startsWith("[ZIP]")) {
 				// ZIP PATH: EXPORT
 				// TODO: this but better and more ram friendly
-				localPath = './.temp/video-${curVideo++}.mp4';
+				localPath = '.temp/video-${curVideo++}.mp4';
 				File.saveBytes(localPath, Assets.getBytes(path));
 			}
 

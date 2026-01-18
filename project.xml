@@ -42,7 +42,7 @@
 	<window if="mac" allow-high-dpi="true" />
 
 	<!--Mobile-specific-->
-	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" resizable="false"/>
+	<window if="mobile" orientation="landscape" fullscreen="true" resizable="false" allow-shaders="true" require-shaders="true" allow-high-dpi="true" />
 
 	<!--Switch-specific-->
 	<window if="switch" orientation="landscape" fullscreen="true" width="0" height="0" resizable="true" />
@@ -103,7 +103,7 @@
 
 	<!-- Comment this out to disable video cutscene support, in case of compilation errors. !-->
 	<section if="cpp">
-		<define name="VIDEO_CUTSCENES" if="desktop || android" />
+		<define name="VIDEO_CUTSCENES" if="desktop || mobile" />
 	</section>
 
 	<!-- Comment this out to disable commit number on FPS -->
@@ -114,6 +114,8 @@
 
 	<!-- Disable a optimization, to allow reflection to use more functions -->
 	<define name="FLX_NO_GENERIC" />
+
+	<define name="TOUCH_CONTROLS" if="mobile || web" />
 
 	<!-- _______________________________ Libraries ______________________________ -->
 
@@ -162,13 +164,7 @@
 		<assets path='mods' rename='mods' embed='false' />
 	</section>
 
-	<assets path='art/readme.txt' rename='do NOT readme.txt' />
-
-	<!-- OpenAL config -->
-	<section if="desktop">
-		<assets path="building/alsoft.txt" rename="plugins/alsoft.ini" type="text" if="windows"/>
-		<assets path="building/alsoft.txt" rename="plugins/alsoft.conf" type="text" unless="windows"/>
-	</section>
+	<assets path='art/readme.txt' rename='do NOT readme.txt' unless="mobile" />
 
 	<!-- ______________________________ Haxedefines _____________________________ -->
 
@@ -208,6 +204,7 @@
 	<icon path="art/iconOG.png" size='512' />
 	<icon path="art/iconOG.png" size='768' />
 	<icon path="art/iconOG.png" size='1024' />
+	<icon path="art/iconOG.png" if="mobile" />
 
 	<!-- _________________________________ Additional stuff _______________________________ -->
 
@@ -239,4 +236,15 @@
 
 	<!-- EXPERMENTAL FEATURES -->
 	<haxedef name="EXPERIMENTAL_FLXGRAPHIC_DESTROY_FIX" />
+
+	<!-- _________________________________ Mobile stuff _______________________________ -->
+
+	<!-- Do whatever you want I'm tired uninstall and install everytime -->
+	<certificate path="key.keystore" password="codenameengine" alias="cneport" alias-password="codenameengine" if="android" unless="debug" />
+
+	<haxedef name="SHARE_MOBILE_FILES" if="mobile" />
+
+	<!-- Category Type for Apple Systems -->
+	<config:ios category_type="public.app-category.music-games" />
+	<config:mac category_type="public.app-category.music-games" />
 </project>

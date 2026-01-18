@@ -21,7 +21,7 @@ varying vec2 openfl_TextureCoordv;
 
 uniform mat4 openfl_Matrix;
 uniform bool openfl_HasColorTransform;
-uniform vec2 openfl_TextureSize;")
+uniform vec2 openfl_TextureSize;", true)
 	@:glVertexBody("openfl_Alphav = openfl_Alpha;
 openfl_TextureCoordv = openfl_TextureCoord;
 
@@ -30,12 +30,12 @@ if (openfl_HasColorTransform) {
 	openfl_ColorOffsetv = openfl_ColorOffset / 255.0;
 }
 
-gl_Position = openfl_Matrix * openfl_Position;")
+gl_Position = openfl_Matrix * openfl_Position;", true)
 	@:glVertexSource("#pragma header
 
 void main(void) {
 	#pragma body
-}")
+}", true)
 	@:glFragmentHeader("varying float openfl_Alphav;
 varying vec4 openfl_ColorMultiplierv;
 varying vec4 openfl_ColorOffsetv;
@@ -43,7 +43,7 @@ varying vec2 openfl_TextureCoordv;
 
 uniform bool openfl_HasColorTransform;
 uniform vec2 openfl_TextureSize;
-uniform sampler2D bitmap;")
+uniform sampler2D bitmap;", true)
 	@:glFragmentBody("vec4 color = texture2D (bitmap, openfl_TextureCoordv);
 
 if (color.a == 0.0) {
@@ -66,7 +66,7 @@ if (color.a == 0.0) {
 	}
 } else {
 	gl_FragColor = color * openfl_Alphav;
-}")
+}", true)
 	#if emscripten
 	@:glFragmentSource("#pragma header
 

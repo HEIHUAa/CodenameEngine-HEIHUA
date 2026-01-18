@@ -10,12 +10,12 @@ import lime.utils.ArrayBuffer;
 import lime.utils.UInt8Array;
 import lime.utils.UInt16Array;
 #if flash
-import openfl.net.URLRequest;
-import openfl.system.Capabilities;
-import openfl.Lib;
+import flash.net.URLRequest;
+import flash.system.Capabilities;
+import flash.Lib;
 #end
 #if air
-import openfl.desktop.NativeApplication;
+import flash.desktop.NativeApplication;
 #end
 #if ((js && html5) || electron)
 import js.html.Element;
@@ -35,9 +35,9 @@ import sys.io.Process;
 @:access(lime._internal.backend.native.NativeCFFI)
 @:access(lime.system.Display)
 @:access(lime.system.DisplayMode)
-#if (cpp && windows && !HXCPP_MINGW && !lime_disable_gpu_hint)
+#if (cpp && windows && !lime_disable_gpu_hint)
 @:cppFileCode('
-#if defined(HX_WINDOWS)
+#if defined(HX_WINDOWS) && !defined(__MINGW32__)
 extern "C" {
 	_declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
@@ -222,6 +222,18 @@ class System
 	#end
 
 	/**
+		Returns the display orientation with the specified ID.
+	**/
+	public static function getDisplayOrientation(id:Int):DisplayOrientation
+	{
+		#if (lime_cffi && !macro)
+		return NativeCFFI.lime_system_get_display_orientation(id);
+		#else
+		return DISPLAY_ORIENTATION_UNKNOWN;
+		#end
+	}
+
+	/**
 		Returns information about the video display with the specified ID.
 	**/
 	public static function getDisplay(id:Int):Display
@@ -239,6 +251,23 @@ class System
 			display.name = displayInfo.name;
 			#end
 			display.bounds = new Rectangle(displayInfo.bounds.x, displayInfo.bounds.y, displayInfo.bounds.width, displayInfo.bounds.height);
+			display.orientation = displayInfo.orientation;
+
+			#if android
+			var getDisplaySafeArea = JNI.createStaticMethod("org/haxe/lime/GameActivity", "getDisplaySafeAreaInsets", "()[I");
+			var result = getDisplaySafeArea();
+			display.safeArea = new Rectangle(
+				display.bounds.x + result[0],
+				display.bounds.y + result[1],
+				display.bounds.width - result[0] - result[2],
+				display.bounds.height - result[1] - result[3]);
+			#else
+			display.safeArea = new Rectangle(
+				displayInfo.safeArea.x,
+				displayInfo.safeArea.y,
+				displayInfo.safeArea.width,
+				displayInfo.safeArea.height);
+			#end
 
 			#if ios
 			var tablet = NativeCFFI.lime_system_get_ios_tablet();
@@ -302,6 +331,23 @@ class System
 			#if flash
 			display.dpi = Capabilities.screenDPI;
 			display.currentMode = new DisplayMode(Std.int(Capabilities.screenResolutionX), Std.int(Capabilities.screenResolutionY), 60, ARGB32);
+			#if air
+			switch (flash.Lib.current.stage.orientation) {
+				case DEFAULT:
+					display.orientation = PORTRAIT;
+				case UPSIDE_DOWN:
+					display.orientation = PORTRAIT_FLIPPED;
+				case ROTATED_LEFT:
+					display.orientation = LANDSCAPE_FLIPPED;
+				case ROTATED_RIGHT:
+					display.orientation = LANDSCAPE;
+				default:
+					display.orientation = UNKNOWN;
+			}
+
+			#else
+			display.orientation = UNKNOWN;
+			#end
 			#elseif (js && html5)
 			// var div = Browser.document.createElement ("div");
 			// div.style.width = "1in";
@@ -311,6 +357,26 @@ class System
 			// display.dpi = Std.parseFloat (ppi);
 			display.dpi = 96 * Browser.window.devicePixelRatio;
 			display.currentMode = new DisplayMode(Browser.window.screen.width, Browser.window.screen.height, 60, ARGB32);
+			if (Browser.window.screen.orientation != null)
+			{
+				switch (Browser.window.screen.orientation.type)
+				{
+					case PORTRAIT_PRIMARY:
+						display.orientation = PORTRAIT;
+					case PORTRAIT_SECONDARY:
+						display.orientation = PORTRAIT_FLIPPED;
+					case LANDSCAPE_PRIMARY:
+						display.orientation = LANDSCAPE;
+					case LANDSCAPE_SECONDARY:
+						display.orientation = LANDSCAPE_FLIPPED;
+					default:
+						display.orientation = UNKNOWN;
+				}
+			}
+			else
+			{
+				display.orientation = UNKNOWN;
+			}
 			#end
 
 			display.supportedModes = [display.currentMode];
@@ -337,6 +403,24 @@ class System
 		return Std.int(untyped __global__.__time_stamp() * 1000);
 		#elseif sys
 		return Std.int(Sys.time() * 1000);
+		#else
+		return 0;
+		#end
+	}
+
+	public static function getPerformanceCounter():Float
+	{
+		#if (lime_cffi && !macro)
+		return cast NativeCFFI.lime_system_get_performance_counter();
+		#else
+		return 0;
+		#end
+	}
+
+	public static function getPerformanceFrequency():Float
+	{
+		#if (lime_cffi && !macro)
+		return cast NativeCFFI.lime_system_get_performance_frequency();
 		#else
 		return 0;
 		#end
@@ -683,8 +767,8 @@ class System
 			__deviceModel = NativeCFFI.lime_system_get_device_model();
 			#end
 			#elseif android
-			var manufacturer:String = JNI.createStaticField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;").get();
-			var model:String = JNI.createStaticField("android/os/Build", "MODEL", "Ljava/lang/String;").get();
+			var manufacturer:String = android.os.Build.MANUFACTURER;
+			var model:String = android.os.Build.MODEL;
 			if (manufacturer != null && model != null)
 			{
 				if (StringTools.startsWith(model.toLowerCase(), manufacturer.toLowerCase()))
@@ -718,7 +802,7 @@ class System
 			__deviceVendor = NativeCFFI.lime_system_get_device_vendor();
 			#end
 			#elseif android
-			var vendor:String = JNI.createStaticField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;").get();
+			var vendor:String = android.os.Build.MANUFACTURER;
 			if (vendor != null)
 			{
 				__deviceVendor = vendor.charAt(0).toUpperCase() + vendor.substr(1);
@@ -866,9 +950,9 @@ class System
 			__platformVersion = NativeCFFI.lime_system_get_platform_version();
 			#end
 			#elseif android
-			var release = JNI.createStaticField("android/os/Build$VERSION", "RELEASE", "Ljava/lang/String;").get();
-			var api = JNI.createStaticField("android/os/Build$VERSION", "SDK_INT", "I").get();
-			if (release != null && api != null) __platformVersion = release + " (API " + api + ")";
+			var release = android.os.Build.VERSION.RELEASE;
+			var api = android.os.Build.VERSION.SDK_INT;
+			/*if (release != null && api != null)*/ __platformVersion = release + " (API " + api + ")";
 			#elseif (lime_cffi && !macro && (ios || tvos))
 			__platformVersion = NativeCFFI.lime_system_get_platform_version();
 			#elseif mac
@@ -894,7 +978,16 @@ class System
 	}
 }
 
-#if (haxe_ver >= 4.0) enum #else @:enum #end abstract SystemDirectory(Int) from Int to Int from UInt to UInt
+enum abstract DisplayOrientation(Int) from Int to Int from UInt to UInt
+{
+	var DISPLAY_ORIENTATION_UNKNOWN = 0;
+	var DISPLAY_ORIENTATION_LANDSCAPE = 1;
+	var DISPLAY_ORIENTATION_LANDSCAPE_FLIPPED = 2;
+	var DISPLAY_ORIENTATION_PORTRAIT = 3;
+	var DISPLAY_ORIENTATION_PORTRAIT_FLIPPED = 4;
+}
+
+enum abstract SystemDirectory(Int) from Int to Int from UInt to UInt
 {
 	var APPLICATION = 0;
 	var APPLICATION_STORAGE = 1;

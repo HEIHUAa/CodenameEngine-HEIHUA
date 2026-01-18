@@ -4,14 +4,17 @@ import haxe.xml.Access;
 import flixel.util.typeLimit.OneOfThree;
 import funkin.editors.ui.UIState;
 import funkin.options.categories.*;
+import funkin.options.TreeMenu;
+import haxe.ds.Map;
 import funkin.options.type.*;
 
 typedef OptionCategory = {
 	var name:String;
 	var desc:String;
-	var ?state:OneOfThree<TreeMenuScreen, Class<TreeMenuScreen>, (name:String, desc:String) -> TreeMenuScreen>;
+	var ?state:OneOfThree<TreeMenuScreen, Class<TreeMenuScreen>, (name:String, desc:String, ?touchPadModes:Array<String>) -> TreeMenuScreen>;
 	var ?substate:OneOfThree<MusicBeatSubstate, Class<MusicBeatSubstate>, (name:String, desc:String) -> MusicBeatSubstate>;
 	var ?suffix:String;
+	var ?touchPadModes:Array<String>;
 }
 
 class OptionsMenu extends TreeMenu {
@@ -32,6 +35,13 @@ class OptionsMenu extends TreeMenu {
 			desc: 'optionsTree.appearance-desc',
 			state: AppearanceOptions
 		},
+		#if (mobile || TOUCH_CONTROLS)
+		{
+			name: 'optionsTree.mobile-name',
+			desc: 'optionsTree.mobile-desc',
+			state: MobileOptions
+		},
+		#end
 		#if TRANSLATIONS_SUPPORT
 		{
 			name: 'optionsTree.language-name',
@@ -51,6 +61,13 @@ class OptionsMenu extends TreeMenu {
 
 	override function create() {
 		super.create();
+
+		if (funkin.backend.system.Controls.instance.touchC)
+		{
+			mainOptions = mainOptions.filter(function(option) {
+				return option.name != "optionsTree.controls-name";
+			});
+		}
 
 		CoolUtil.playMenuSong();
 
@@ -81,11 +98,11 @@ class OptionsMenu extends TreeMenu {
 				if (o.state is TreeMenuScreen)
 					addMenu(o.state);
 				else if (Reflect.isFunction(o.state)) {
-					var state:(name:String, desc:String) -> TreeMenuScreen = o.state;
-					addMenu(state(o.name, o.desc));
+					var state:(name:String, desc:String, ?touchPadModes:Array<String>) -> TreeMenuScreen = o.state;
+					addMenu(state(o.name, o.desc, o.touchPadModes));
 				}
 				else { // o.state is Class<TreeMenuScreen>
-					addMenu(Type.createInstance(o.state, [o.name, o.desc]));
+					addMenu(Type.createInstance(o.state, [o.name, o.desc, null, null, o.touchPadModes]));
 				}
 			}
 		})]));
@@ -103,6 +120,10 @@ class OptionsMenu extends TreeMenu {
 				if (access != null) for (o in parseOptionsFromXML(first, access)) first.add(o);
 			}
 		}
+		#if TOUCH_CONTROLS
+		addTouchPad('UP_DOWN', 'A_B');
+		addTouchPadCamera();
+		#end
 	}
 
 	function checkDebugOption() {
@@ -218,6 +239,15 @@ class OptionsMenu extends TreeMenu {
 						for (o in parseOptionsFromXML(screen, node)) screen.add(o);
 						addMenu(screen);
 					}));
+				case "touchPad":
+					#if TOUCH_CONTROLS
+					var arr = [
+						node.getAtt("dpadMode") == null ? MusicBeatState.getState().touchPad.curDPadMode : node.getAtt("dpadMode"), 
+						node.getAtt("actionMode") == null ? MusicBeatState.getState().touchPad.curActionMode : node.getAtt("actionMode")
+					];
+					// MTODO: IMPLEMENT
+					//vpadMap.set(node.getAtt("menuName"), arr);
+					#end
 			}
 		}
 

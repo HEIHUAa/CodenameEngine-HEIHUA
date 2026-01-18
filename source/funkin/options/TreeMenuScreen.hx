@@ -22,6 +22,8 @@ class TreeMenuScreen extends FlxSpriteGroup {
 
 	public var name:String;
 	public var desc:String;
+	public var prevMenuTPadModes:Array<String> = [];
+	
 	/**
 	 * The prefix to add to the translations ids.
 	**/
@@ -60,13 +62,25 @@ class TreeMenuScreen extends FlxSpriteGroup {
 	var curFloatOption:ITreeFloatOption;
 	var __firstFrame:Bool = true;
 
-	public function new(name:String, desc:String, prefix:String = "", ?objects:Array<FlxSprite>) {
+	public function new(name:String, desc:String, prefix:String = "", ?objects:Array<FlxSprite>, ?menuTPadModes:Array<String>) {
 		super();
 		this.prefix = prefix;
 		rawName = name;
 		rawDesc = desc;
 
 		turboBasics = [leftTurboControl, rightTurboControl, upTurboControl, downTurboControl];
+
+		#if TOUCH_CONTROLS
+		if (menuTPadModes != null)
+		{
+			final state = MusicBeatState.getState();
+			this.prevMenuTPadModes = [state.touchPad.curDPadMode, state.touchPad.curActionMode];
+			state.removeTouchPad();
+
+			state.addTouchPad(menuTPadModes[0], menuTPadModes[1]);
+			state.addTouchPadCamera();
+		}
+		#end
 
 		if (objects != null) for (object in objects) add(object);
 	}
@@ -95,7 +109,7 @@ class TreeMenuScreen extends FlxSpriteGroup {
 			for (basic in turboBasics) basic.update(elapsed);
 
 			var change = (upTurboControl.activated ? -1 : 0) + (downTurboControl.activated ? 1 : 0) - FlxG.mouse.wheel, mouseControl = false;
-			if (FlxG.mouse.justPressed) {
+			if (FlxG.mouse.justPressed && !funkin.backend.system.Controls.instance.touchC) {
 				for (i in CoolUtil.maxInt(curSelected - 3, 0)...CoolUtil.minInt(curSelected + 4, length))
 					if (i != curSelected && members[i] != null && mouseOverlaps(members[i])) {
 						change = i - curSelected;
@@ -106,7 +120,7 @@ class TreeMenuScreen extends FlxSpriteGroup {
 			changeSelection(change);
 
 			if (length > 0 && curOption != null) {
-				if (controls.ACCEPT || (!mouseControl && FlxG.mouse.justPressed && mouseOverlaps(members[curSelected]))) curOption.select();
+				if (controls.ACCEPT || (!mouseControl && (FlxG.mouse.justPressed && !funkin.backend.system.Controls.instance.touchC) && mouseOverlaps(members[curSelected]))) curOption.select();
 				if (curFloatOption != null) {
 					if (controls.LEFT) curFloatOption.changeValue(-elapsed);
 					if (controls.RIGHT) curFloatOption.changeValue(elapsed);
@@ -155,6 +169,17 @@ class TreeMenuScreen extends FlxSpriteGroup {
 		else parent.removeMenu(this);
 
 		CoolUtil.playMenuSFX(CANCEL).persist = true;
+
+		#if TOUCH_CONTROLS
+		if (prevMenuTPadModes.length > 0)
+		{
+			final state = MusicBeatState.getState();
+			state.removeTouchPad();
+
+			state.addTouchPad(prevMenuTPadModes[0], prevMenuTPadModes[1]);
+			state.addTouchPadCamera();
+		}
+		#end
 	}
 
 	public function changeSelection(change:Int, force:Bool = false) {

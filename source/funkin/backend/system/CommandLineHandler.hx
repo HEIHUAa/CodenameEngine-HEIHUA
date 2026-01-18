@@ -4,6 +4,7 @@ package funkin.backend.system;
 import sys.FileSystem;
 final class CommandLineHandler {
 	public static function parseCommandLine(cmd:Array<String>) {
+		#if !mobile
 		var i:Int = 0;
 		while(i < cmd.length) {
 			switch(cmd[i]) {
@@ -71,6 +72,7 @@ final class CommandLineHandler {
 			}
 			i++;
 		}
+		#end
 	}
 }
 #end

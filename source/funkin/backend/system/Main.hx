@@ -27,20 +27,19 @@ import sys.io.File;
 import android.content.Context;
 import android.os.Build;
 #end
+import lime.system.System as LimeSystem;
 
 class Main extends Sprite
 {
 	public static var instance:Main;
 
 	public static var modToLoad:String = null;
-	public static var forceGPUOnlyBitmapsOff:Bool = #if desktop false #else true #end;
+	public static var forceGPUOnlyBitmapsOff:Bool = #if (desktop || mobile) false #else true #end;
 	public static var noTerminalColor:Bool = false;
 	public static var verbose:Bool = false;
 
 	public static var scaleMode:FunkinRatioScaleMode;
-	#if !mobile
 	public static var framerateSprite:Framerate;
-	#end
 
 	var gameWidth:Int = 1280; // Width of the game in pixels (might be less / more in actual pixels).
 	var gameHeight:Int = 720; // Height of the game in pixels (might be less / more in actual pixels).
@@ -69,12 +68,26 @@ class Main extends Sprite
 
 		instance = this;
 
+		#if mobile
+		#if android
+		StorageUtil.requestPermissions();
+		#end
+		Sys.setCwd(StorageUtil.getStorageDirectory());
+		#end
+
 		CrashHandler.init();
+
+		#if !web framerateSprite = new Framerate(); #end
 
 		addChild(game = new FunkinGame(gameWidth, gameHeight, MainState, Options.framerate, Options.framerate, skipSplash, startFullscreen));
 
-		#if (!mobile && !web)
-		addChild(framerateSprite = new Framerate());
+		#if android FlxG.android.preventDefaultKeys = [BACK]; #end
+
+		#if !web
+		addChild(framerateSprite);
+		#if mobile
+		FlxG.stage.window.onResize.add((w:Int, h:Int) -> framerateSprite.setScale());
+		#end
 		SystemInfo.init();
 		#end
 	}
@@ -141,20 +154,23 @@ class Main extends Sprite
 		FlxG.signals.postStateSwitch.add(onStateSwitchPost);
 		FlxG.signals.postUpdate.add(onUpdate);
 
-		FlxG.mouse.useSystemCursor = true;
+		FlxG.mouse.useSystemCursor = !Controls.instance.touchC;
 		#if DARK_MODE_WINDOW
 		if(funkin.backend.utils.NativeAPI.hasVersion("Windows 10")) funkin.backend.utils.NativeAPI.redrawWindowHeader();
 		#end
 
 		ModsFolder.init();
 		#if MOD_SUPPORT
-		if (FileSystem.exists("mods/autoload.txt"))
-			modToLoad = File.getContent("mods/autoload.txt").trim();
+		if (FileSystem.exists(#if android StorageUtil.getExternalStorageDirectory() + #elseif (!android && mobile) StorageUtil.getStorageDirectory() + #end "mods/autoload.txt"))
+			modToLoad = File.getContent(#if android StorageUtil.getExternalStorageDirectory() + #elseif (!android && mobile) StorageUtil.getStorageDirectory() + #end "mods/autoload.txt").trim();
 
 		ModsFolder.switchMod(modToLoad.getDefault(Options.lastLoadedMod));
 		#end
 
 		initTransition();
+		#if mobile
+		LimeSystem.allowScreenTimeout = Options.screenTimeOut;
+		#end
 	}
 
 	public static function refreshAssets() @:privateAccess {
@@ -225,9 +241,7 @@ class Main extends Sprite
 		if (!noCwdFix && !sys.FileSystem.exists('manifest/default.json')) {
 			Sys.setCwd(haxe.io.Path.directory(Sys.programPath()));
 		}
-		#elseif android
-		Sys.setCwd(haxe.io.Path.addTrailingSlash(VERSION.SDK_INT > 30 ? Context.getObbDir() : Context.getExternalFilesDir()));
-		#elseif (ios || switch)
+		#elseif switch
 		Sys.setCwd(haxe.io.Path.addTrailingSlash(openfl.filesystem.File.applicationStorageDirectory.nativePath));
 		#end
 	}

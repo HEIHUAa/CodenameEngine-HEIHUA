@@ -9,6 +9,11 @@
 		<str id="save">Salva</str>
 		<str id="saveClose">Salva e Chiudi</str>
 		<str id="close">Chiudi</str>
+
+		<group name="Warnings" prefix="warnings.">
+			<str id="mkRequirement-title">Attenzione: Sono richiesti Mouse e Tastiera!</str>
+			<str id="mkRequirement-body">Stai per entrare in un editor. Usare gli editor richiede collegati mouse e tastiera.\n(Potrebbe essere necessario impostare TouchPad Opacity a 0)\n\n\nProcedere?</str>
+		</group>
 	</group>
 
 	<group name="UIImageExplorer" prefix="uiImageExplorer.">

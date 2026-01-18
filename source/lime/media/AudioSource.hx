@@ -250,7 +250,9 @@ class AudioSource
 	}
 }
 
-#if (js && html5)
+#if flash
+@:noCompletion private typedef AudioSourceBackend = lime._internal.backend.flash.FlashAudioSource;
+#elseif (js && html5)
 @:noCompletion private typedef AudioSourceBackend = lime._internal.backend.html5.HTML5AudioSource;
 #else
 @:noCompletion private typedef AudioSourceBackend = lime._internal.backend.native.NativeAudioSource;

@@ -8,10 +8,12 @@ import lime.graphics.OpenGLRenderContext;
 import lime.graphics.RenderContext;
 import lime.math.Rectangle;
 import lime.media.AudioManager;
+import lime.system.CFFI;
 import lime.system.Clipboard;
 import lime.system.Display;
 import lime.system.DisplayMode;
 import lime.system.JNI;
+import lime.system.Orientation;
 import lime.system.Sensor;
 import lime.system.SensorType;
 import lime.system.System;
@@ -49,6 +51,7 @@ class NativeApplication
 	private var gamepadEventInfo = new GamepadEventInfo();
 	private var joystickEventInfo = new JoystickEventInfo();
 	private var keyEventInfo = new KeyEventInfo();
+	private var orientationEventInfo = new OrientationEventInfo();
 	private var mouseEventInfo = new MouseEventInfo();
 	private var renderEventInfo = new RenderEventInfo(RENDER);
 	private var sensorEventInfo = new SensorEventInfo();
@@ -58,6 +61,10 @@ class NativeApplication
 	private var windowEventInfo = new WindowEventInfo();
 
 	public var handle:Dynamic;
+
+	#if android
+	private var deviceOrientationListener:OrientationChangeListener;
+	#end
 
 	private var pauseTimer:Int;
 	private var parent:Application;
@@ -82,6 +89,13 @@ class NativeApplication
 		Sensor.registerSensor(SensorType.ACCELEROMETER, 0);
 		#end
 
+		#if android
+		var setDeviceOrientationListener = JNI.createStaticMethod("org/haxe/lime/GameActivity", "setDeviceOrientationListener",
+			"(Lorg/haxe/lime/HaxeObject;)V");
+		deviceOrientationListener = new OrientationChangeListener(handleJNIOrientationEvent);
+		setDeviceOrientationListener(deviceOrientationListener);
+		#end
+
 		#if (!macro && lime_cffi)
 		handle = NativeCFFI.lime_application_create();
 		#end
@@ -89,12 +103,13 @@ class NativeApplication
 
 	private function advanceTimer():Void
 	{
-		#if lime_cffi
+		#if (lime_cffi && !macro)
 		if (pauseTimer > -1)
 		{
 			var offset = System.getTimer() - pauseTimer;
-			for(timer in Timer.sRunningTimers) {
-				if(timer != null && timer.mRunning) timer.mFireAt += offset;
+			for (i in 0...Timer.sRunningTimers.length)
+			{
+				if (Timer.sRunningTimers[i] != null) Timer.sRunningTimers[i].mFireAt += offset;
 			}
 			pauseTimer = -1;
 		}
@@ -116,6 +131,9 @@ class NativeApplication
 		NativeCFFI.lime_text_event_manager_register(handleTextEvent, textEventInfo);
 		NativeCFFI.lime_touch_event_manager_register(handleTouchEvent, touchEventInfo);
 		NativeCFFI.lime_window_event_manager_register(handleWindowEvent, windowEventInfo);
+		#if (ios || android)
+		NativeCFFI.lime_orientation_event_manager_register(handleOrientationEvent, orientationEventInfo);
+		#end
 		#if (ios || android || tvos)
 		NativeCFFI.lime_sensor_event_manager_register(handleSensorEvent, sensorEventInfo);
 		#end
@@ -164,6 +182,15 @@ class NativeApplication
 		#end
 	}
 
+	public function getDeviceOrientation():Orientation
+	{
+		#if (!macro && lime_cffi)
+		return cast NativeCFFI.lime_system_get_device_orientation();
+		#else
+		return UNKNOWN;
+		#end
+	}
+
 	private function handleApplicationEvent():Void
 	{
 		switch (applicationEventInfo.type)
@@ -186,7 +213,7 @@ class NativeApplication
 	{
 		for (window in parent.windows)
 		{
-			window.onDropFile.dispatch(#if hl @:privateAccess String.fromUTF8(dropEventInfo.file) #else dropEventInfo.file #end);
+			window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
 		}
 	}
 
@@ -196,15 +223,24 @@ class NativeApplication
 		{
 			case AXIS_MOVE:
 				var gamepad = Gamepad.devices.get(gamepadEventInfo.id);
-				if (gamepad != null) gamepad.onAxisMove.dispatch(gamepadEventInfo.axis, gamepadEventInfo.axisValue);
+				if (gamepad != null) {
+					gamepad.onAxisMove.dispatch(gamepadEventInfo.axis, gamepadEventInfo.axisValue);
+					gamepad.onAxisMovePrecise.dispatch(gamepadEventInfo.axis, gamepadEventInfo.axisValue, gamepadEventInfo.timestamp);
+				}
 
 			case BUTTON_DOWN:
 				var gamepad = Gamepad.devices.get(gamepadEventInfo.id);
-				if (gamepad != null) gamepad.onButtonDown.dispatch(gamepadEventInfo.button);
+				if (gamepad != null) {
+					gamepad.onButtonDown.dispatch(gamepadEventInfo.button);
+					gamepad.onButtonDownPrecise.dispatch(gamepadEventInfo.button, gamepadEventInfo.timestamp);
+				}
 
 			case BUTTON_UP:
 				var gamepad = Gamepad.devices.get(gamepadEventInfo.id);
-				if (gamepad != null) gamepad.onButtonUp.dispatch(gamepadEventInfo.button);
+				if (gamepad != null) {
+					gamepad.onButtonUp.dispatch(gamepadEventInfo.button);
+					gamepad.onButtonUpPrecise.dispatch(gamepadEventInfo.button, gamepadEventInfo.timestamp);
+				}
 
 			case CONNECT:
 				Gamepad.__connect(gamepadEventInfo.id);
@@ -225,8 +261,6 @@ class NativeApplication
 			case HAT_MOVE:
 				var joystick = Joystick.devices.get(joystickEventInfo.id);
 				if (joystick != null) joystick.onHatMove.dispatch(joystickEventInfo.index, joystickEventInfo.eventValue);
-
-			case TRACKBALL_MOVE: // I guess this was just removed ??
 
 			case BUTTON_DOWN:
 				var joystick = Joystick.devices.get(joystickEventInfo.id);
@@ -254,14 +288,17 @@ class NativeApplication
 			var int32:Float = keyEventInfo.keyCode;
 			var keyCode:KeyCode = Std.int(int32);
 			var modifier:KeyModifier = keyEventInfo.modifier;
+			var timestamp = keyEventInfo.timestamp;
 
 			switch (type)
 			{
 				case KEY_DOWN:
 					window.onKeyDown.dispatch(keyCode, modifier);
+					window.onKeyDownPrecise.dispatch(keyCode, modifier, timestamp);
 
 				case KEY_UP:
 					window.onKeyUp.dispatch(keyCode, modifier);
+					window.onKeyUpPrecise.dispatch(keyCode, modifier, timestamp);
 			}
 
 			#if (windows || linux)
@@ -286,7 +323,7 @@ class NativeApplication
 			}
 
 			#if rpi
-			if (keyCode == ESCAPE && modifier == KeyModifier.NONE && type == KEY_UP && !window.onKeyUp.canceled)
+			if (keyCode == ESCAPE && modifier.ctrlKey && type == KEY_DOWN)
 			{
 				System.exit(0);
 			}
@@ -353,6 +390,27 @@ class NativeApplication
 		}
 	}
 
+	private function handleOrientationEvent():Void
+	{
+		var orientation:Orientation = cast orientationEventInfo.orientation;
+		var display = orientationEventInfo.display;
+		switch (orientationEventInfo.type)
+		{
+			case DISPLAY_ORIENTATION_CHANGE:
+				parent.onDisplayOrientationChange.dispatch(display, orientation);
+			case DEVICE_ORIENTATION_CHANGE:
+				parent.onDeviceOrientationChange.dispatch(orientation);
+		}
+	}
+
+	#if android
+	private function handleJNIOrientationEvent(newOrientation:Int):Void
+	{
+		var orientation:Orientation = cast newOrientation;
+		parent.onDeviceOrientationChange.dispatch(orientation);
+	}
+	#end
+
 	private function handleRenderEvent():Void
 	{
 		// TODO: Allow windows to render independently
@@ -410,7 +468,7 @@ class NativeApplication
 
 	private function handleSensorEvent():Void
 	{
-		var sensor = Sensor.sensorByID.get(sensorEventInfo.id);
+		var sensor = Sensor.__sensorByID.get(sensorEventInfo.id);
 
 		if (sensor != null)
 		{
@@ -427,10 +485,10 @@ class NativeApplication
 			switch (textEventInfo.type)
 			{
 				case TEXT_INPUT:
-					window.onTextInput.dispatch(#if hl @:privateAccess String.fromUTF8(textEventInfo.text) #else textEventInfo.text #end);
+					window.onTextInput.dispatch(CFFI.stringValue(textEventInfo.text));
 
 				case TEXT_EDIT:
-					window.onTextEdit.dispatch(#if hl @:privateAccess String.fromUTF8(textEventInfo.text) #else textEventInfo.text #end, textEventInfo.start,
+					window.onTextEdit.dispatch(CFFI.stringValue(textEventInfo.text), textEventInfo.start,
 						textEventInfo.length);
 
 				default:
@@ -574,7 +632,7 @@ class NativeApplication
 
 	private function updateTimer():Void
 	{
-		#if lime_cffi
+		#if (lime_cffi && !macro)
 		if (Timer.sRunningTimers.length > 0)
 		{
 			var currentTime = System.getTimer();
@@ -585,9 +643,9 @@ class NativeApplication
 			{
 				timer = Timer.sRunningTimers[i];
 
-				if (timer != null && timer.mRunning)
+				if (timer != null)
 				{
-					if (currentTime >= timer.mFireAt)
+					if (timer.mRunning && currentTime >= timer.mFireAt)
 					{
 						timer.mFireAt += timer.mTime;
 						timer.run();
@@ -603,7 +661,7 @@ class NativeApplication
 			{
 				Timer.sRunningTimers = Timer.sRunningTimers.filter(function(val)
 				{
-					return val != null && val.mRunning;
+					return val != null;
 				});
 			}
 		}
@@ -696,13 +754,17 @@ class NativeApplication
 	public var type:GamepadEventType;
 	public var axisValue:Float;
 
-	public function new(type:GamepadEventType = null, id:Int = 0, button:Int = 0, axis:Int = 0, value:Float = 0)
+	// TODO: This should probably be an Int64
+	public var timestamp:Int = 0;
+
+	public function new(type:GamepadEventType = null, id:Int = 0, button:Int = 0, axis:Int = 0, value:Float = 0, timestamp:Int = 0)
 	{
 		this.type = type;
 		this.id = id;
 		this.button = button;
 		this.axis = axis;
 		this.axisValue = value;
+		this.timestamp = timestamp;
 	}
 
 	public function clone():GamepadEventInfo
@@ -749,7 +811,6 @@ class NativeApplication
 {
 	var AXIS_MOVE = 0;
 	var HAT_MOVE = 1;
-	var TRACKBALL_MOVE = 2;
 	var BUTTON_DOWN = 3;
 	var BUTTON_UP = 4;
 	var CONNECT = 5;
@@ -763,17 +824,21 @@ class NativeApplication
 	public var type:KeyEventType;
 	public var windowID:Int;
 
-	public function new(type:KeyEventType = null, windowID:Int = 0, keyCode: Float = 0, modifier:Int = 0)
+	// TODO: This should probably be an Int64
+	public var timestamp:Int = 0;
+
+	public function new(type:KeyEventType = null, windowID:Int = 0, keyCode: Float = 0, modifier:Int = 0, timestamp:Int = 0)
 	{
 		this.type = type;
 		this.windowID = windowID;
 		this.keyCode = keyCode;
 		this.modifier = modifier;
+		this.timestamp = timestamp;
 	}
 
 	public function clone():KeyEventInfo
 	{
-		return new KeyEventInfo(type, windowID, keyCode, modifier);
+		return new KeyEventInfo(type, windowID, keyCode, modifier, timestamp);
 	}
 }
 
@@ -868,6 +933,7 @@ class NativeApplication
 #if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract SensorEventType(Int)
 {
 	var ACCELEROMETER = 0;
+	var GYROSCOPE = 1;
 }
 
 @:keep /*private*/ class TextEventInfo
@@ -978,4 +1044,48 @@ class NativeApplication
 	var WINDOW_RESTORE = 12;
 	var WINDOW_SHOW = 13;
 	var WINDOW_HIDE = 14;
+}
+
+@:keep /*private*/ class OrientationEventInfo
+{
+	public var orientation:Int;
+	public var display:Int;
+	public var type:OrientationEventType;
+
+	public function new(type:OrientationEventType = null, orientation:Int = 0, display:Int = -1)
+	{
+		this.type = type;
+		this.orientation = orientation;
+		this.display = display;
+	}
+
+	public function clone():OrientationEventInfo
+	{
+		return new OrientationEventInfo(type, orientation, display);
+	}
+}
+
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract OrientationEventType(Int)
+{
+	var DISPLAY_ORIENTATION_CHANGE = 0;
+	var DEVICE_ORIENTATION_CHANGE = 1;
+}
+
+private class OrientationChangeListener #if (android && !macro) implements JNISafety #end
+{
+	private var callback:Int->Void;
+
+	public function new(callback:Int->Void)
+	{
+		this.callback = callback;
+	}
+
+	#if (android && !macro)
+	@:runOnMainThread
+	#end
+	@:keep
+	public function onOrientationChanged(orientation:Int):Void
+	{
+		callback(orientation);
+	}
 }

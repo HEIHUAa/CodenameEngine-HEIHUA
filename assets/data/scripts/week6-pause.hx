@@ -55,6 +55,9 @@ function create(event) {
 
 
 	FlxG.sound.play(Paths.sound(isThorns ? 'pixel/ANGRY' : 'pixel/clickText'));
+
+	addTouchPad('UP_DOWN', 'A');
+	addTouchPadCamera();
 }
 
 function confText(text) {

@@ -27,7 +27,6 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 	public var onGLUpdate:FlxTypedSignal<Void->Void> = new FlxTypedSignal<Void->Void>();
 	public var onProcessGLData:FlxTypedSignal<(String, String)->Void> = new FlxTypedSignal<(String, String)->Void>();
 
-	public var glslVer:String = Flags.DEFAULT_GLSL_VERSION;
 	public var fileName:String = "FunkinShader";
 	public var fragFileName:String = "FunkinShader";
 	public var vertFileName:String = "FunkinShader";
@@ -41,16 +40,13 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 	 * Accepts `#pragma header`.
 	 * @param frag Fragment source (pass `null` to use default)
 	 * @param vert Vertex source (pass `null` to use default)
-	 * @param glslVer Version of GLSL to use (defaults to 120)
 	 */
-	public override function new(frag:String, vert:String, glslVer:String = null) {
-		if (glslVer == null) glslVer = Flags.DEFAULT_GLSL_VERSION;
+	public override function new(frag:String, vert:String) {
 		if (frag == null) frag = ShaderTemplates.defaultFragmentSource;
 		if (vert == null) vert = ShaderTemplates.defaultVertexSource;
 		this.glFragmentSource = frag;
 		this.glVertexSource = vert;
 
-		this.glslVer = glslVer;
 		super();
 	}
 
@@ -153,7 +149,13 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 			messageBuf.add(source);
 
 			var message = messageBuf.toString();
-			if (compileStatus == 0) Log.error(message);
+			if (compileStatus == 0)
+			{
+				#if mobile
+                funkin.backend.utils.NativeAPI.showMessageBox("Shader Compile Error!", message, MSG_ERROR);
+				#end
+				Log.error(message);
+			}
 			else if (hasInfoLog) Log.debug(message);
 		}
 
@@ -193,6 +195,9 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 				messageBuf.add("\n");
 				messageBuf.add(gl.getProgramInfoLog(program));
 				var message = messageBuf.toString();
+				#if mobile
+                funkin.backend.utils.NativeAPI.showMessageBox("Shader Compile Error!", message, MSG_ERROR);
+				#end
 				Log.error(message);
 			}
 		}
@@ -203,6 +208,9 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 				Logs.logText('Failed to compile shader ${fileName}: ', RED),
 				Logs.logText(Std.string(error))
 			], TRACE);
+			#if mobile
+            funkin.backend.utils.NativeAPI.showMessageBox("Shader Compile Error!", 'Failed to compile shader ${fileName}: \n${Std.string(error)}', MSG_ERROR);
+			#end
 		}
 		return program;
 
@@ -278,11 +286,13 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 		if (__context != null && program == null)
 		{
 			var prefixBuf = new StringBuf();
-			prefixBuf.add('#version ${glslVer}\n');
 			prefixBuf.add(shaderPrefix);
 
 			var gl = __context.gl;
 
+			#if (js && html5)
+			prefixBuf.add(precisionHint == FULL ? "precision mediump float;\n" : "precision lowp float;\n");
+			#else
 			prefixBuf.add("#ifdef GL_ES\n");
 			if (precisionHint == FULL) {
 				prefixBuf.add("#ifdef GL_FRAGMENT_PRECISION_HIGH\n");
@@ -294,6 +304,7 @@ class FunkinShader extends FlxShader implements IHScriptCustomBehaviour {
 				prefixBuf.add("precision lowp float;\n");
 			}
 			prefixBuf.add("#endif\n");
+			#end
 
 			var prefix = prefixBuf.toString();
 

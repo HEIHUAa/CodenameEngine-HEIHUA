@@ -26,6 +26,9 @@
 
 		<str id="optionsTree.debug-name">Debug Options</str>
 		<str id="optionsTree.debug-desc">Debug Options for Developer Mode.</str>
+
+		<str id="optionsTree.mobile-name">Mobile Options</str>
+		<str id="optionsTree.mobile-desc">Change Options related to Mobile or Touch Controls.</str>
 	</group>
 
 	<group name="KeybindOptions" prefix="KeybindsOptions.">
@@ -96,6 +99,35 @@
 			<str id="gpuOnlyBitmaps-name">VRAM-Only Sprites</str>
 			<str id="gpuOnlyBitmaps-desc">If checked, will only store the bitmaps in the GPU, freeing a LOT of memory (EXPERIMENTAL). Turning this off will consume a lot of memory, especially on bigger sprites. If you aren't sure, leave this on.</str>
 		</group>
+	</group>
+
+	<group name="MobileOptions" prefix="MobileOptions.">
+		<str id="extraHints-name">Extra Hints</str>
+		<str id="extraHints-desc">Select how many extra hints you prefer to have on hitbox.</str>
+
+		<str id="hitboxAlpha-name">Hitbox Opacity</str>
+		<str id="hitboxAlpha-desc">Change how opaque the Hitbox should be</str>
+
+		<str id="oldPadTexture-name">Use Old Pad Texture</str>
+		<str id="oldPadTexture-desc">If checked, the TouchPad will use the old texture it used before</str>
+
+		<str id="touchPadAlpha-name">TouchPad Opacity</str>
+		<str id="touchPadAlpha-desc">Change how opaque the TouchPad should be</str>
+
+		<str id="hitboxType-name">Hitbox Design</str>
+		<str id="hitboxType-desc">Choose how your Hitbox should look like!</str>
+
+		<str id="hitboxPos-name">Hitbox Position</str>
+		<str id="hitboxPos-desc">If checked, the Hitbox will be put at the bottom of the screen, otherwise will stay at the top.</str>
+
+		<str id="screenTimeOut-name">Allow Screen Timeout</str>
+		<str id="screenTimeOut-desc">If checked, The phone will enter sleep mode if the player is inactive.</str>
+
+		<str id="useExternal-name">Use EXTERNAL Folder</str>
+		<str id="useExternal-desc">If checked, The engine will use .CodenameEngine for the Mods and Addons folder.</str>
+
+		<str id="storageTypeChange-title">Warning: Storage Type Has Been Changed!</str>
+		<str id="storageTypeChange-body">The Storage Type has been changed.\nA restart is required for this change to take effect.\nAny previously installed mods will have to be moved manually to the new Storage Types's directory after this restart.\n\nPress OK to reset the game and apply the changes.</str>
 	</group>
 
 	<group name="GameplayOptions" prefix="GameplayOptions.">
