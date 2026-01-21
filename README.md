@@ -1,12 +1,9 @@
 # Friday Night Funkin' - Codename Engine Mobile
 
->
+> [!CAUTION]
 >
 > The project is based on https://github.com/HomuHomu833-haxe-stuff/CodenameEngine-Mobile, with only minor updates to adapt it for the mobile version of my mod.
 >
->
->
-> [!CAUTION]
 > If you encounter any issues in the MOBILE PORT, PLEASE REPORT THEM TO US FIRST!
 > This helps us ensure the best experience for all users and allows us to fix problems quickly, without disturbing the upstream repository.
 
