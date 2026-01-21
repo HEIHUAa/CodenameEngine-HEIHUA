@@ -29,6 +29,6 @@
 		<git name="format" url="https://github.com/FNF-SE/format" />
 		<git name="hxp" url="https://github.com/FNF-SE/hxp" />
 
-		<git name="hxcpp" url="https://github.com/FNF-SE/hxcpp" />
+		<git name="hxcpp" url="https://github.com/HEIHUAa/cne-hxcpp-android" ref="cne" />
 	</if>
 </libraries>
