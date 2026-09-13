@@ -144,7 +144,6 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	override function initVars() {
 		super.initVars();
 		_rect2 = FlxRect.get();
-		_chainBounds = FlxRect.get();
 	}
 
 	public function loadSprite(path:String, Unique:Bool = false, Key:String = null)
@@ -343,6 +342,24 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	 */
 	public var shaderBucket:Int = 128;
 
+	/**
+	 * Resolution scale of the chain render textures. The sprite content is rendered at
+	 * `size * shaderScale` and drawn back at the sprite's normal size, so the on-screen
+	 * size stays unchanged while effects run at a higher resolution (`> 1`, supersampled,
+	 * sharper) or a lower one (`< 1`, cheaper; with `antialiasing = false` it works as a
+	 * pixelation effect). Defaults to `1`.
+	 */
+	public var shaderScale(default, set):Float = 1;
+
+	function set_shaderScale(v:Float):Float
+	{
+		if (v <= 0)
+			v = 1;
+		if (shaderScale != v)
+			_renderTextureDirty = true;
+		return shaderScale = v;
+	}
+
 	public function addShader(s:FlxShader):Void
 	{
 		if (s != null && shaders.indexOf(s) == -1)
@@ -385,6 +402,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	var _chainPadR:Int = 0;
 	var _chainPadT:Int = 0;
 	var _chainPadB:Int = 0;
+	var _chainScale:Float = 0;
 	var _chainBounds:FlxRect;
 	var _chainFlattenCb:FlxCamera->FlxMatrix->Void;
 	var _chainFlattenFrameCb:FlxCamera->FlxMatrix->Void;
@@ -420,17 +438,21 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	@:privateAccess function chainFlattenDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
 	{
 		final bounds = timeline._bounds;
+		final scale = shaderScale;
 		matrix.identity();
-		matrix.translate(shaderPadLeft - bounds.x, shaderPadTop - bounds.y);
+		matrix.scale(scale, scale);
+		matrix.translate((shaderPadLeft - bounds.x) * scale, (shaderPadTop - bounds.y) * scale);
 		timeline.draw(rtCam, matrix, null, null, antialiasing, null);
 	}
 
 	@:privateAccess function chainFlattenFrameDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
 	{
 		final frame = _chainFlattenFrame;
+		final scale = shaderScale;
 		frame.prepareMatrix(matrix, FlxFrameAngle.ANGLE_0, false, false);
 		matrix.translate(-frame.offset.x, -frame.offset.y);
-		matrix.translate(shaderPadLeft, shaderPadTop);
+		matrix.scale(scale, scale);
+		matrix.translate(shaderPadLeft * scale, shaderPadTop * scale);
 		rtCam.drawPixels(frame, null, matrix, null, null, antialiasing, null, wrapMode);
 	}
 
@@ -478,25 +500,30 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 		final padR = shaderPadRight;
 		final padT = shaderPadTop;
 		final padB = shaderPadBottom;
+		final scale = shaderScale;
 
 		final bounds = @:privateAccess timeline._bounds;
+		if (_chainBounds == null)
+			_chainBounds = FlxRect.get();
 		_chainBounds.set(bounds.x - padL, bounds.y - padT,
 			bounds.width + padL + padR, bounds.height + padT + padB);
 
-		_chainW = bucketSize(Math.ceil(_chainBounds.width));
-		_chainH = bucketSize(Math.ceil(_chainBounds.height));
+		_chainW = bucketSize(Math.ceil(_chainBounds.width * scale));
+		_chainH = bucketSize(Math.ceil(_chainBounds.height * scale));
 		ensureChainRTs();
-		if (_chainPadL != padL || _chainPadR != padR || _chainPadT != padT || _chainPadB != padB)
+		if (_chainPadL != padL || _chainPadR != padR || _chainPadT != padT || _chainPadB != padB || _chainScale != scale)
 		{
 			_chainPadL = padL;
 			_chainPadR = padR;
 			_chainPadT = padT;
 			_chainPadB = padB;
+			_chainScale = scale;
 			_renderTextureDirty = true;
 		}
 
 		final matrix = _matrix;
 		matrix.identity();
+		matrix.scale(1 / scale, 1 / scale);
 		matrix.translate(-padL, -padT);
 		prepareAnimateMatrix(matrix, camera, _chainBounds);
 
@@ -530,9 +557,10 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 		final padR = shaderPadRight;
 		final padT = shaderPadTop;
 		final padB = shaderPadBottom;
+		final scale = shaderScale;
 
-		_chainW = bucketSize(Math.ceil(frame.sourceSize.x) + padL + padR);
-		_chainH = bucketSize(Math.ceil(frame.sourceSize.y) + padT + padB);
+		_chainW = bucketSize(Math.ceil((frame.sourceSize.x + padL + padR) * scale));
+		_chainH = bucketSize(Math.ceil((frame.sourceSize.y + padT + padB) * scale));
 		ensureChainRTs();
 
 		_chainFlattenFrame = frame;
@@ -542,6 +570,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 
 		final matrix = _matrix;
 		matrix.identity();
+		matrix.scale(1 / scale, 1 / scale);
 		matrix.translate(-padL, -padT);
 		final flipX = checkFlipX();
 		final flipY = checkFlipY();
