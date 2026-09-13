@@ -8,6 +8,7 @@ import flixel.math.FlxMatrix;
 import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
 import flixel.system.FlxAssets.FlxGraphicAsset;
+import flixel.system.FlxAssets.FlxShader;
 import flixel.util.typeLimit.OneOfTwo;
 import funkin.backend.scripting.events.sprite.PlayAnimContext;
 import funkin.backend.system.interfaces.IBeatReceiver;
@@ -143,6 +144,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	override function initVars() {
 		super.initVars();
 		_rect2 = FlxRect.get();
+		_chainBounds = FlxRect.get();
 	}
 
 	public function loadSprite(path:String, Unique:Bool = false, Key:String = null)
@@ -192,6 +194,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	#if REGION
 	public override function destroy()
 	{
+		disposeRenderTargets();
 		if (animOffsets != null) {
 			for (key in animOffsets.keys()) {
 				final point = animOffsets[key];
@@ -204,6 +207,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 		super.destroy();
 
 		_rect2 = FlxDestroyUtil.put(_rect2);
+		_chainBounds = FlxDestroyUtil.put(_chainBounds);
 	}
 	#end
 
@@ -308,6 +312,183 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	@:dox(hide) public inline function hasAnimation(AnimName:String) return hasAnim(AnimName);
 	@:dox(hide) public inline function removeAnimation(name:String) return removeAnim(name);
 	@:dox(hide) public inline function stopAnimation() return stopAnim();
+	#end
+
+	#if REGION
+	/**
+	 * Master switch of the multi-shader chain. When `false` (or when `shaders` is empty),
+	 * the sprite draws exactly like it would without the chain.
+	 */
+	public var multiShaderEnabled:Bool = true;
+
+	/**
+	 * Only supported on GPU renderers; on `FlxG.renderBlit` the sprite falls back to
+	 * the normal drawing path.
+	 */
+	public var shaders:Array<FlxShader> = [];
+
+	/**
+	 * Transparent margin in pixels baked around the sprite content before the chain
+	 * runs, settable per side. Effects that push pixels outwards (blur, glow, outlines,
+	 * displacement) need this to avoid getting clipped by the sprite bounds.
+	 */
+	public var shaderPadLeft:Int = 0;
+	public var shaderPadRight:Int = 0;
+	public var shaderPadTop:Int = 0;
+	public var shaderPadBottom:Int = 0;
+
+	/**
+	 * Chain render textures are sized in multiples of this, so that the small bounds
+	 * changes between animation frames don't constantly allocate new textures.
+	 */
+	public var shaderBucket:Int = 128;
+
+	public function addShader(s:FlxShader):Void
+	{
+		if (s != null && shaders.indexOf(s) == -1)
+			shaders.push(s);
+	}
+
+	public function removeShader(s:FlxShader):Bool
+		return shaders.remove(s);
+
+	/**
+	 * Frees the offscreen render targets used by the shader chain;
+	 * they are recreated as soon as the chain runs again.
+	 */
+	public function disposeRenderTargets():Void
+	{
+		_chainRT = FlxDestroyUtil.destroy(_chainRT);
+		_chainRT2 = FlxDestroyUtil.destroy(_chainRT2);
+	}
+
+	inline function chainActive():Bool
+		return multiShaderEnabled && shaders.length > 0 && !FlxG.renderBlit;
+
+	inline function bucketSize(size:Int):Int
+	{
+		if (size < 1)
+			return 1;
+		final bucket = shaderBucket < 1 ? 1 : shaderBucket;
+		final scaled = Math.ceil(size / bucket) * bucket;
+		final max = FlxG.bitmap.maxTextureSize;
+		return max > 0 && scaled > max ? max : scaled;
+	}
+
+	var _chainRT:RenderTexture;
+	var _chainRT2:RenderTexture;
+	var _chainW:Int = 0;
+	var _chainH:Int = 0;
+	var _chainPadL:Int = 0;
+	var _chainPadR:Int = 0;
+	var _chainPadT:Int = 0;
+	var _chainPadB:Int = 0;
+	var _chainBounds:FlxRect;
+	var _chainFlattenCb:FlxCamera->FlxMatrix->Void;
+	var _chainPassCb:FlxCamera->FlxMatrix->Void;
+	var _chainPassSrcFrame:FlxFrame;
+	var _chainPassShader:FlxShader;
+
+	function runChainPass(src:RenderTexture, dst:RenderTexture, s:FlxShader):Void
+	{
+		dst.init(_chainW, _chainH);
+		_chainPassSrcFrame = src.graphic.imageFrame.frame;
+		_chainPassShader = s;
+		dst.drawToCamera(_chainPassCb);
+		dst.render();
+	}
+
+	@:privateAccess function chainFlattenDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
+	{
+		final bounds = timeline._bounds;
+		matrix.identity();
+		matrix.translate(shaderPadLeft - bounds.x, shaderPadTop - bounds.y);
+		timeline.draw(rtCam, matrix, null, null, antialiasing, null);
+	}
+
+	@:privateAccess function chainPassDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
+	{
+		matrix.identity();
+		rtCam.drawPixels(_chainPassSrcFrame, null, matrix, null, null, antialiasing, _chainPassShader, wrapMode);
+	}
+
+	override function drawAnimate(camera:FlxCamera):Void
+	{
+		if (!chainActive())
+		{
+			super.drawAnimate(camera);
+			return;
+		}
+
+		final padL = shaderPadLeft;
+		final padR = shaderPadRight;
+		final padT = shaderPadTop;
+		final padB = shaderPadBottom;
+
+		final bounds = @:privateAccess timeline._bounds;
+		_chainBounds.set(bounds.x - padL, bounds.y - padT,
+			bounds.width + padL + padR, bounds.height + padT + padB);
+
+		_chainW = bucketSize(Math.ceil(_chainBounds.width));
+		_chainH = bucketSize(Math.ceil(_chainBounds.height));
+		if (_chainRT == null)
+		{
+			_chainRT = new RenderTexture(_chainW, _chainH);
+			_chainRT2 = new RenderTexture(_chainW, _chainH);
+			_chainFlattenCb = chainFlattenDraw;
+			_chainPassCb = chainPassDraw;
+			_renderTextureDirty = true;
+		}
+		if (_chainPadL != padL || _chainPadR != padR || _chainPadT != padT || _chainPadB != padB)
+		{
+			_chainPadL = padL;
+			_chainPadR = padR;
+			_chainPadT = padT;
+			_chainPadB = padB;
+			_renderTextureDirty = true;
+		}
+
+		final matrix = _matrix;
+		matrix.identity();
+		matrix.translate(-padL, -padT);
+		prepareAnimateMatrix(matrix, camera, _chainBounds);
+
+		if (renderStage)
+			drawStage(camera);
+
+		timeline.currentFrame = animation.frameIndex;
+
+		if (!useRenderTexture)
+			useRenderTexture = true;
+		if (_renderTextureDirty)
+		{
+			_chainRT.init(_chainW, _chainH);
+			_chainRT.drawToCamera(_chainFlattenCb);
+			_chainRT.render();
+			_renderTextureDirty = false;
+		}
+
+		var src = _chainRT;
+		var dst = _chainRT2;
+		if (shaderEnabled && shader != null)
+		{
+			runChainPass(src, dst, shader);
+			final tmp = src; src = dst; dst = tmp;
+		}
+		for (s in shaders)
+		{
+			if (s == null)
+				continue;
+			runChainPass(src, dst, s);
+			final tmp = src; src = dst; dst = tmp;
+		}
+
+		final frame = src.graphic.imageFrame.frame;
+		if (layer != null)
+			layer.drawPixels(this, camera, frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
+		else
+			camera.drawPixels(frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
+	}
 	#end
 
 	// Getter / Setters
