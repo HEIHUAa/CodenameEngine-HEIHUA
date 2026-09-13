@@ -360,6 +360,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	{
 		_chainRT = FlxDestroyUtil.destroy(_chainRT);
 		_chainRT2 = FlxDestroyUtil.destroy(_chainRT2);
+		_chainRT3 = FlxDestroyUtil.destroy(_chainRT3);
 	}
 
 	inline function chainActive():Bool
@@ -377,6 +378,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 
 	var _chainRT:RenderTexture;
 	var _chainRT2:RenderTexture;
+	var _chainRT3:RenderTexture;
 	var _chainW:Int = 0;
 	var _chainH:Int = 0;
 	var _chainPadL:Int = 0;
@@ -385,9 +387,26 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 	var _chainPadB:Int = 0;
 	var _chainBounds:FlxRect;
 	var _chainFlattenCb:FlxCamera->FlxMatrix->Void;
+	var _chainFlattenFrameCb:FlxCamera->FlxMatrix->Void;
+	var _chainFlattenFrame:FlxFrame;
 	var _chainPassCb:FlxCamera->FlxMatrix->Void;
 	var _chainPassSrcFrame:FlxFrame;
 	var _chainPassShader:FlxShader;
+	var _chainFrameMat:FlxMatrix;
+
+	function ensureChainRTs():Void
+	{
+		if (_chainRT != null)
+			return;
+		_chainRT = new RenderTexture(_chainW, _chainH);
+		_chainRT2 = new RenderTexture(_chainW, _chainH);
+		_chainRT3 = new RenderTexture(_chainW, _chainH);
+		_chainFlattenCb = chainFlattenDraw;
+		_chainFlattenFrameCb = chainFlattenFrameDraw;
+		_chainPassCb = chainPassDraw;
+		_chainFrameMat = new FlxMatrix();
+		_renderTextureDirty = true;
+	}
 
 	function runChainPass(src:RenderTexture, dst:RenderTexture, s:FlxShader):Void
 	{
@@ -406,10 +425,45 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 		timeline.draw(rtCam, matrix, null, null, antialiasing, null);
 	}
 
+	@:privateAccess function chainFlattenFrameDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
+	{
+		final frame = _chainFlattenFrame;
+		frame.prepareMatrix(matrix, FlxFrameAngle.ANGLE_0, false, false);
+		matrix.translate(-frame.offset.x, -frame.offset.y);
+		matrix.translate(shaderPadLeft, shaderPadTop);
+		rtCam.drawPixels(frame, null, matrix, null, null, antialiasing, null, wrapMode);
+	}
+
 	@:privateAccess function chainPassDraw(rtCam:FlxCamera, matrix:FlxMatrix):Void
 	{
 		matrix.identity();
 		rtCam.drawPixels(_chainPassSrcFrame, null, matrix, null, null, antialiasing, _chainPassShader, wrapMode);
+	}
+
+	function runChainAndComposite(camera:FlxCamera, matrix:FlxMatrix):Void
+	{
+		var src = _chainRT;
+		var dst = _chainRT2;
+		if (shaderEnabled && shader != null)
+		{
+			runChainPass(src, dst, shader);
+			src = dst;
+			dst = _chainRT3;
+		}
+		for (s in shaders)
+		{
+			if (s == null)
+				continue;
+			runChainPass(src, dst, s);
+			src = dst;
+			dst = dst == _chainRT2 ? _chainRT3 : _chainRT2;
+		}
+
+		final frame = src.graphic.imageFrame.frame;
+		if (layer != null)
+			layer.drawPixels(this, camera, frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
+		else
+			camera.drawPixels(frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
 	}
 
 	override function drawAnimate(camera:FlxCamera):Void
@@ -431,14 +485,7 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 
 		_chainW = bucketSize(Math.ceil(_chainBounds.width));
 		_chainH = bucketSize(Math.ceil(_chainBounds.height));
-		if (_chainRT == null)
-		{
-			_chainRT = new RenderTexture(_chainW, _chainH);
-			_chainRT2 = new RenderTexture(_chainW, _chainH);
-			_chainFlattenCb = chainFlattenDraw;
-			_chainPassCb = chainPassDraw;
-			_renderTextureDirty = true;
-		}
+		ensureChainRTs();
 		if (_chainPadL != padL || _chainPadR != padR || _chainPadT != padT || _chainPadB != padB)
 		{
 			_chainPadL = padL;
@@ -468,26 +515,46 @@ class FunkinSprite extends FlxAnimate implements IBeatReceiver implements IOffse
 			_renderTextureDirty = false;
 		}
 
-		var src = _chainRT;
-		var dst = _chainRT2;
-		if (shaderEnabled && shader != null)
+		runChainAndComposite(camera, matrix);
+	}
+
+	override function drawFrameComplex(frame:FlxFrame, camera:FlxCamera):Void
+	{
+		if (!chainActive())
 		{
-			runChainPass(src, dst, shader);
-			final tmp = src; src = dst; dst = tmp;
-		}
-		for (s in shaders)
-		{
-			if (s == null)
-				continue;
-			runChainPass(src, dst, s);
-			final tmp = src; src = dst; dst = tmp;
+			super.drawFrameComplex(frame, camera);
+			return;
 		}
 
-		final frame = src.graphic.imageFrame.frame;
-		if (layer != null)
-			layer.drawPixels(this, camera, frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
-		else
-			camera.drawPixels(frame, framePixels, matrix, colorTransform, blend, antialiasing, null, wrapMode);
+		final padL = shaderPadLeft;
+		final padR = shaderPadRight;
+		final padT = shaderPadTop;
+		final padB = shaderPadBottom;
+
+		_chainW = bucketSize(Math.ceil(frame.sourceSize.x) + padL + padR);
+		_chainH = bucketSize(Math.ceil(frame.sourceSize.y) + padT + padB);
+		ensureChainRTs();
+
+		_chainFlattenFrame = frame;
+		_chainRT.init(_chainW, _chainH);
+		_chainRT.drawToCamera(_chainFlattenFrameCb);
+		_chainRT.render();
+
+		final matrix = _matrix;
+		matrix.identity();
+		matrix.translate(-padL, -padT);
+		final flipX = checkFlipX();
+		final flipY = checkFlipY();
+		_chainFrameMat.identity();
+		_chainFrameMat.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+		_chainFrameMat.translate(
+			flipX ? Std.int(frame.sourceSize.x) - frame.offset.x : frame.offset.x,
+			flipY ? Std.int(frame.sourceSize.y) - frame.offset.y : frame.offset.y
+		);
+		matrix.concat(_chainFrameMat);
+		prepareDrawMatrix(matrix, camera);
+
+		runChainAndComposite(camera, matrix);
 	}
 	#end
 
