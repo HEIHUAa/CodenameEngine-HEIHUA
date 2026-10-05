@@ -130,6 +130,9 @@
 		<str id="ghostTapping-name">Ghost Tapping</str>
 		<str id="ghostTapping-desc">If unchecked, trying to hit any strum that have no note that can be hit will cause a miss.</str>
 
+		<str id="centeredFields-name">Centered Strumlines</str>
+		<str id="centeredFields-desc">If checked, only the playable strumlines will be visible and will be aligned horizontally to your screen. (Also known as "Middlescroll")</str>
+
 		<str id="naughtyness-name">Naughtyness</str>
 		<str id="naughtyness-desc">If unchecked, will censor the Week 7 cutscenes or more.</str>
 
@@ -192,6 +195,9 @@
 
 		<str id="showConsole-name">Show Console</str>
 		<str id="showConsole-desc">Select this to show the debug console, which contains log information about the game.</str>
+
+		<str id="useNativeConsole-name">Use Native Console</str>
+		<str id="useNativeConsole-desc">If checked, will always use the native console instead of the ImGui console when pressing its keybind.</str>
 
 		<str id="editorsResizable-name">Resizable Editors</str>
 		<str id="editorsResizable-desc">If checked, this will allow the editors to render beyond the base 1280x720 resolution of FNF (allowing for more detail and space...)</str>

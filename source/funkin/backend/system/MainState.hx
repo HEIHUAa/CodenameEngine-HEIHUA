@@ -14,6 +14,7 @@ import funkin.backend.system.framerate.Framerate;
 import funkin.editors.ModConfigWarning;
 import funkin.menus.TitleState;
 import haxe.io.Path;
+import openfl.Lib;
 
 
 @dox(hide)
@@ -96,6 +97,7 @@ class MainState extends FlxState {
 					if (Flags.ALLOWED_ZIP_EXTENSIONS.contains(Path.extension(addon))) addon = Path.withoutExtension(addon);
 					else continue;
 				}
+				if (Options.disabledAddons.contains(addon)) continue;
 
 				var data:AddonInfo = {
 					name: addon,
@@ -137,6 +139,16 @@ class MainState extends FlxState {
 		Flags.load();
 		funkin.savedata.FunkinSave.init();
 
+		Framerate.fontName = Framerate.defaultFontName;
+
+		FlxG.mouse.load();
+		FlxG.mouse.useSystemCursor = true;
+
+		if (Framerate.isLoaded)
+			Framerate.instance.visible = Framerate.memoryCounter.visible = Framerate.codenameBuildField.visible = Framerate.fpsCounter.visible = true;
+
+		WindowUtils.setResolution();
+		WindowUtils.resetIcon();
 		TranslationUtil.findAllLanguages();
 		TranslationUtil.setLanguage(Flags.DISABLE_LANGUAGES ? Flags.DEFAULT_LANGUAGE : null);
 		ModsFolder.onModSwitch.dispatch(ModsFolder.currentModFolder); // Loads global.hx

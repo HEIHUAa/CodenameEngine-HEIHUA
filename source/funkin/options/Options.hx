@@ -27,6 +27,7 @@ class Options
 	 */
 	public static var naughtyness:Bool = true;
 	public static var downscroll:Bool = false;
+	public static var centeredFields:Bool = false;
 	public static var ghostTapping:Bool = true;
 	public static var flashingMenu:Bool = true;
 	public static var camZoomOnBeat:Bool = true;
@@ -73,6 +74,7 @@ class Options
 	#end
 
 	public static var lastLoadedMod:String = null;
+	public static var disabledAddons:Array<String> = [];
 
 	/**
 	 * EDITORS SETTINGS
@@ -114,6 +116,7 @@ class Options
 	public static var charterAutoSaveTime:Float = 60*5;
 	public static var charterAutoSaveWarningTime:Float = 5;
 	public static var charterAutoSavesSeparateFolder:Bool = false;
+	public static var charterPauseQuant:Bool = false;
 
 	/**
 	 * CHARACTER EDITOR
@@ -142,6 +145,8 @@ class Options
 	public static var consoleObjectsFilter:Bool = true;
 	public static var consoleScriptsFilter:Bool = true;
 	public static var consoleCountDuplicatedOutput:Bool = true;
+
+	public static var useNativeConsole:Bool = false;
 
 	#if IMGUI_ENABLED
 	/**

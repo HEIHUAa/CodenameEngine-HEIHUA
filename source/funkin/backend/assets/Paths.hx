@@ -22,10 +22,16 @@ class Paths
 	public static var assetsTree:AssetsLibraryList;
 
 	public static var tempFramesCache:Map<String, FlxFramesCollection> = [];
+	#if (sys && !windows)
+	static var tempPathsCache:Map<String, Null<String>> = [];
+	#end
 
 	public static function init() {
 		FlxG.signals.preStateSwitch.add(function() {
 			tempFramesCache.clear();
+			#if (sys && !windows)
+			tempPathsCache.clear();
+			#end
 		});
 	}
 
@@ -35,29 +41,29 @@ class Paths
 		#if (sys && !windows)
 		if (Assets.exists(fixedPath)) return fixedPath;
 		else if (Flags.PATHS_UNIX_FIX) {
+			if (tempPathsCache.exists(fixedPath)) return tempPathsCache.get(fixedPath);
+
 			final isFile = path.lastIndexOf(".") != -1, parts = path.split("/");
-			final n = parts.length - 1;
+			final n = parts.length - 1, keyCache = fixedPath;
 
 			fixedPath = prefix;
 			for (i => part in parts) {
-				final partIsFile = isFile && i == n;
-				final lower = part.toLowerCase(), entries = partIsFile ? assetsTree.getFiles(fixedPath) : assetsTree.getFolders(fixedPath);
+				final lower = part.toLowerCase(), entries = (isFile && i == n) ? assetsTree.getFiles(fixedPath) : assetsTree.getFolders(fixedPath);
 				var pass = false;
 
 				for (entry in entries) if (entry.toLowerCase() == lower) {
 					pass = true;
-					if (partIsFile) fixedPath += entry;
-					else fixedPath += entry + "/";
+					fixedPath += i == n ? entry : entry + "/";
 					break;
 				}
 
 				if (!pass) {
-					if (nullFail) return null;
-					else fixedPath += part;
+					if (nullFail) return tempPathsCache[keyCache] = null;
+					else fixedPath += i == n ? part : part + "/";
 				}
 			}
 
-			return fixedPath;
+			return tempPathsCache[keyCache] = fixedPath;
 		}
 		else if (!nullFail) return fixedPath;
 		#else
@@ -316,7 +322,10 @@ class Paths
 
 		if (frameCollections.length == 1 && !unique && (key == null || key == assetKey)) return frameCollections[0];
 
-		if (asset == null) asset = new FlxAtlasFrames(FlxGraphic.fromFrame(FlxG.bitmap.whitePixel, unique, assetKey));
+		if (asset == null) {
+			// couldnt use FlxG.bitmap.whitePixel cus it would crash sometimes ??? (it would be destroyed somehow)
+			asset = new FlxAtlasFrames(FlxGraphic.fromRectangle(10, 10, 0xFFffffff, unique, assetKey));
+		}
 		else {
 			@:privateAccess asset.parent.key = assetKey;
 			asset.parent.unique = unique;

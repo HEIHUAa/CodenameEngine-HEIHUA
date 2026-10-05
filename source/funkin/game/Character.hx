@@ -487,7 +487,7 @@ class Character extends FunkinSprite implements IBeatReceiver implements IOffset
 		if (iconColor != null) xml.set("color", iconColor.toWebString());
 		if (defaultAimFPS != 24) xml.set("defFps", Std.string(defaultAimFPS));
 
-		if (sprite != curCharacter) xml.set("sprite", sprite);
+		if (sprite != curCharacter && sprite != null) xml.set("sprite", sprite);
 		if (scale.x != 1) xml.set("scale", Std.string(FlxMath.roundDecimal(scale.x, 4)));
 		if (!antialiasing) xml.set("antialiasing", antialiasing == true ? "true" : "false");
 
@@ -497,6 +497,10 @@ class Character extends FunkinSprite implements IBeatReceiver implements IOffset
 			if (postStageMatrixApply != false || Flags.USE_LEGACY_FLXANIMATE_STAGE_MATRIX)
 				xml.set("postStageMatrixApply", postStageMatrixApply ? "true" : "false");
 		}
+
+		for(e in this.xml.elements)
+			if(e.name == "spritesheet" || e.name == "sheet") 
+				xml.addChild(e.x);
 
 		var anims:Array<AnimData> = [];
 		if (animsOrder != null) {
