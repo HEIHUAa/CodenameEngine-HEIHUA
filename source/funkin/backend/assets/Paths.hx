@@ -81,7 +81,6 @@ class Paths
 		var p:Null<String> = idx == -1 ? "" : file.substr(0, idx);
 		file = file.substr(idx + 1);
 
-		final e:Array<String> = (exts is String) ? [exts] : (cast exts);
 
 		idx = file.lastIndexOf(".");
 		if (idx != -1) {

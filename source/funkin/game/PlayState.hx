@@ -658,11 +658,29 @@ class PlayState extends MusicBeatState
 		return name;
 	}
 
-	public inline function callOnCharacters(func:String, ?parameters:Array<Dynamic>) {
-		if(strumLines != null) strumLines.forEachAlive(function (strLine:StrumLine) {
-			if (strLine.characters != null) for (character in strLine.characters)
-				if (character != null) character.scripts.call(func, parameters);
-		});
+	private static var __charEventArgs:Array<Dynamic> = [null];
+
+	private var __charCallFunc:String = null;
+	private var __charCallArgs:Array<Dynamic> = null;
+	private var __charCallFn:StrumLine->Void = null;
+
+	public function callOnCharacters(func:String, ?parameters:Array<Dynamic>) {
+		if (strumLines == null) return;
+
+		if (__charCallFn == null) {
+			__charCallFn = function(strLine:StrumLine) {
+				if (strLine.characters != null) for (character in strLine.characters)
+					if (character != null) character.scripts.call(__charCallFunc, __charCallArgs);
+			};
+		}
+
+		var prevFunc = __charCallFunc;
+		var prevArgs = __charCallArgs;
+		__charCallFunc = func;
+		__charCallArgs = parameters;
+		strumLines.forEachAlive(__charCallFn);
+		__charCallFunc = prevFunc;
+		__charCallArgs = prevArgs;
 	}
 
 	public inline function gameAndCharsCall(func:String, ?parameters:Array<Dynamic>, ?charsFunc:String) {
@@ -672,7 +690,10 @@ class PlayState extends MusicBeatState
 
 	public inline function gameAndCharsEvent<T:CancellableEvent>(func:String, ?event:T, ?charsFunc:String):T {
 		scripts.event(func, event);
-		callOnCharacters(charsFunc != null ? charsFunc : func, [event]);
+		var prevArg = __charEventArgs[0];
+		__charEventArgs[0] = event;
+		callOnCharacters(charsFunc != null ? charsFunc : func, __charEventArgs);
+		__charEventArgs[0] = prevArg;
 		return event;
 	}
 
@@ -1410,9 +1431,15 @@ class PlayState extends MusicBeatState
 	private var TEXT_GAME_COMBOBREAKS = TU.getRaw("game.comboBreaks");
 	private var TEXT_GAME_ACCURACY = TU.getRaw("game.accuracy");
 
-	dynamic function updateRatingStuff() {
-		scoreTxt.text = TEXT_GAME_SCORE.format([songScore]);
-		missesTxt.text = (comboBreaks ? TEXT_GAME_COMBOBREAKS : TEXT_GAME_MISSES).format([misses]);
+	private var ratingStuffValid:Bool = false;
+	private var cachedScore:Int = 0;
+	private var cachedMisses:Int = 0;
+	private var cachedComboBreaks:Bool = false;
+	private var cachedAccuracy:Float = 0;
+	private var cachedRating:ComboRating = null;
+	private var scoreStr:String = null;
+	private var missesStr:String = null;
+	private var accuracyStr:String = null;
 
 		if (curRating == null)
 			curRating = new ComboRating(0, "[N/A]", 0xFF888888);
@@ -1427,6 +1454,8 @@ class PlayState extends MusicBeatState
 				break;
 			}
 		}
+
+		ratingStuffValid = true;
 	}
 
 	@:dox(hide)
@@ -1552,6 +1581,8 @@ class PlayState extends MusicBeatState
 
 		gameAndCharsEvent("onPostBopZoom", event);
 	}
+
+	private var __camPos:FlxPoint = FlxPoint.get();
 
 	public function moveCamera() if (strumLines.members[curCameraTarget] != null) {
 		var data:CamPosData = getStrumlineCamPos(curCameraTarget);
