@@ -658,8 +658,6 @@ class PlayState extends MusicBeatState
 		return name;
 	}
 
-	private static var __charEventArgs:Array<Dynamic> = [null];
-
 	private var __charCallFunc:String = null;
 	private var __charCallArgs:Array<Dynamic> = null;
 	private var __charCallFn:StrumLine->Void = null;
@@ -683,6 +681,18 @@ class PlayState extends MusicBeatState
 		__charCallArgs = prevArgs;
 	}
 
+	public inline function eventOnCharacters<T:CancellableEvent>(func:String, ?event:T):T {
+		if (strumLines == null) return event;
+
+		for (strLine in strumLines.members) {
+			if (strLine == null || !strLine.exists || !strLine.alive) continue;
+			if (strLine.characters != null) for (character in strLine.characters)
+				if (character != null) character.scripts.event(func, event);
+		}
+
+		return event;
+	}
+
 	public inline function gameAndCharsCall(func:String, ?parameters:Array<Dynamic>, ?charsFunc:String) {
 		scripts.call(func, parameters);
 		callOnCharacters(charsFunc != null ? charsFunc : func, parameters);
@@ -690,11 +700,7 @@ class PlayState extends MusicBeatState
 
 	public function gameAndCharsEvent<T:CancellableEvent>(func:String, ?event:T, ?charsFunc:String):T {
 		scripts.event(func, event);
-		var prevArg = __charEventArgs[0];
-		__charEventArgs[0] = event;
-		callOnCharacters(charsFunc != null ? charsFunc : func, __charEventArgs);
-		__charEventArgs[0] = prevArg;
-		return event;
+		return eventOnCharacters(charsFunc != null ? charsFunc : func, event);
 	}
 
 	@:dox(hide) override public function create()
