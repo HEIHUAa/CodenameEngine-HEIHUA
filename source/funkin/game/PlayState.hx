@@ -1609,11 +1609,13 @@ class PlayState extends MusicBeatState
 		gameAndCharsEvent("onPostBopZoom", event);
 	}
 
-	private var __camPos:FlxPoint = FlxPoint.get();
-
+	@:noCompletion @:dox(hide) private var __camPos:FlxPoint = FlxPoint.get();
+	@:noCompletion @:dox(hide) private var __camPosData:CamPosData = null;
 	public function moveCamera() if (strumLines.members[curCameraTarget] != null) {
+		if (__camPosData == null) __camPosData = new CamPosData(__camPos, 0);
+
 		__camPos.set(0, 0);
-		var data:CamPosData = getStrumlineCamPos(curCameraTarget, __camPos);
+		var data:CamPosData = getStrumlineCamPos(curCameraTarget, __camPos, true, __camPosData);
 		data.pos.add(cameraFocusOffset.x, cameraFocusOffset.y);
 
 		if (data.amount > 0) {
@@ -1628,9 +1630,10 @@ class PlayState extends MusicBeatState
 	 * @param strumLine The strumline to get the camera position of.
 	 * @param pos The position to put the camera position in. If `null`, a new FlxPoint will be created.
 	 * @param ignoreInvisible Whenever invisible characters should be ignored.
+	 * @param out If provided, fills and returns this instance instead of allocating a new one. The caller keeps ownership of `pos` (don't put it back to the pool).
 	**/
-	public inline function getStrumlineCamPos(strumLine:Int, ?pos:FlxPoint = null, ?ignoreInvisible:Bool = true):CamPosData {
-		return getCharactersCamPos(strumLines.members[strumLine].characters, pos, ignoreInvisible);
+	public inline function getStrumlineCamPos(strumLine:Int, ?pos:FlxPoint = null, ?ignoreInvisible:Bool = true, ?out:CamPosData = null):CamPosData {
+		return getCharactersCamPos(strumLines.members[strumLine].characters, pos, ignoreInvisible, out);
 	}
 
 	/**
@@ -1638,8 +1641,9 @@ class PlayState extends MusicBeatState
 	 * @param chars The characters to get the camera position of.
 	 * @param pos The position to put the camera position in. If `null`, a new FlxPoint will be created.
 	 * @param ignoreInvisible Whenever invisible characters should be ignored.
+	 * @param out If provided, fills and returns this instance instead of allocating a new one. The caller keeps ownership of `pos` (don't put it back to the pool).
 	**/
-	public dynamic function getCharactersCamPos(chars:Array<Character>, ?pos:FlxPoint = null, ?ignoreInvisible:Bool = true):CamPosData {
+	public dynamic function getCharactersCamPos(chars:Array<Character>, ?pos:FlxPoint = null, ?ignoreInvisible:Bool = true, ?out:CamPosData = null):CamPosData {
 		if (pos == null) pos = FlxPoint.get();
 		var amount = 0;
 		for(c in chars) {
@@ -1654,7 +1658,13 @@ class PlayState extends MusicBeatState
 			pos.x /= amount;
 			pos.y /= amount;
 		}
-		return new CamPosData(pos, amount);
+
+		if (out == null)
+			return new CamPosData(pos, amount);
+
+		out.pos = pos;
+		out.amount = amount;
+		return out;
 	}
 
 
