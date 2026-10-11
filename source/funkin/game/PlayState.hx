@@ -664,7 +664,7 @@ class PlayState extends MusicBeatState
 	private var __charCallArgs:Array<Dynamic> = null;
 	private var __charCallFn:StrumLine->Void = null;
 
-	public function callOnCharacters(func:String, ?parameters:Array<Dynamic>) {
+	public inline function callOnCharacters(func:String, ?parameters:Array<Dynamic>) {
 		if (strumLines == null) return;
 
 		if (__charCallFn == null) {
@@ -688,7 +688,7 @@ class PlayState extends MusicBeatState
 		callOnCharacters(charsFunc != null ? charsFunc : func, parameters);
 	}
 
-	public inline function gameAndCharsEvent<T:CancellableEvent>(func:String, ?event:T, ?charsFunc:String):T {
+	public function gameAndCharsEvent<T:CancellableEvent>(func:String, ?event:T, ?charsFunc:String):T {
 		scripts.event(func, event);
 		var prevArg = __charEventArgs[0];
 		__charEventArgs[0] = event;
@@ -1441,12 +1441,33 @@ class PlayState extends MusicBeatState
 	private var missesStr:String = null;
 	private var accuracyStr:String = null;
 
+	dynamic function updateRatingStuff() {
 		if (curRating == null)
 			curRating = new ComboRating(0, "[N/A]", 0xFF888888);
 
+		if (!ratingStuffValid || cachedScore != songScore) {
+			cachedScore = songScore;
+			scoreStr = TEXT_GAME_SCORE.format([songScore]);
+		}
+		scoreTxt.text = scoreStr;
+
+		if (!ratingStuffValid || cachedMisses != misses || cachedComboBreaks != comboBreaks) {
+			cachedMisses = misses;
+			cachedComboBreaks = comboBreaks;
+			missesStr = (comboBreaks ? TEXT_GAME_COMBOBREAKS : TEXT_GAME_MISSES).format([misses]);
+		}
+		missesTxt.text = missesStr;
+
+		var curAccuracy = accuracy;
+		if (!ratingStuffValid || cachedRating != curRating || cachedAccuracy != curAccuracy) {
+			cachedRating = curRating;
+			cachedAccuracy = curAccuracy;
+			accuracyStr = TEXT_GAME_ACCURACY.format([curAccuracy < 0 ? "-%" : '${CoolUtil.quantize(curAccuracy * 100, 100)}%', curRating.rating]);
+		}
+
 		@:privateAccess {
 			accFormat.format.color = curRating.color;
-			accuracyTxt.text = TEXT_GAME_ACCURACY.format([accuracy < 0 ? "-%" : '${CoolUtil.quantize(accuracy * 100, 100)}%', curRating.rating]);
+			accuracyTxt.text = accuracyStr;
 
 			for (i => frmtRange in accuracyTxt._formatRanges) if (frmtRange.format == accFormat) {
 				accuracyTxt._formatRanges[i].range.start = accuracyTxt.text.length - curRating.rating.length;
@@ -1585,7 +1606,8 @@ class PlayState extends MusicBeatState
 	private var __camPos:FlxPoint = FlxPoint.get();
 
 	public function moveCamera() if (strumLines.members[curCameraTarget] != null) {
-		var data:CamPosData = getStrumlineCamPos(curCameraTarget);
+		__camPos.set(0, 0);
+		var data:CamPosData = getStrumlineCamPos(curCameraTarget, __camPos);
 		data.pos.add(cameraFocusOffset.x, cameraFocusOffset.y);
 
 		if (data.amount > 0) {
@@ -1593,7 +1615,6 @@ class PlayState extends MusicBeatState
 			if (!event.cancelled)
 				camFollow.setPosition(event.position.x, event.position.y);
 		}
-		data.put();
 	}
 
 	/**
